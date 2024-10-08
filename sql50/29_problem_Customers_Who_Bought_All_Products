@@ -1,0 +1,83 @@
+29. https://leetcode.com/problems/customers-who-bought-all-products/description/?envType=study-plan-v2&envId=top-sql-50
+
+Customers Who Bought All Products:
+
+Table: Customer
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| customer_id | int     |
+| product_key | int     |
++-------------+---------+
+This table may contain duplicates rows. 
+customer_id is not NULL.
+product_key is a foreign key (reference column) to Product table.
+ 
+Table: Product
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| product_key | int     |
++-------------+---------+
+product_key is the primary key (column with unique values) for this table.
+ 
+Write a solution to report the customer ids from the Customer table that bought all the products in the Product table.
+Return the result table in any order.
+The result format is in the following example.
+
+solution 1:
+  select customer_id
+  from Customer
+  where product_key in (select product_key from product)
+  group by customer_id
+  having count(distinct(product_key))= (select count(*) from product);
+
+solution 2: (using cte)
+  with cte as (
+      select count(*) as total_products from product
+  )
+  select customer_id
+  from Customer
+  where product_key in (select product_key from product)
+  group by customer_id
+  having count(distinct(product_key))= (
+      select total_products from cte
+  );
+
+solution 3: (group by and cte for subquery)
+  with cte as (
+      select count(*) as total_rows from Product
+  )
+  select customer_id
+  from Customer left join product
+  on product.product_key= Customer.product_key
+  where Customer.product_key is not null
+  group by customer_id
+  having count(distinct Customer.product_key)= (select total_rows from cte);
+
+
+Additional points, Analysis
+
+Subqueries in the HAVING Clause:
+
+Query 1 has a subquery in the HAVING clause that calculates the total number of products. 
+This subquery runs for each group created by the GROUP BY, which could lead to performance degradation if the number of distinct customer IDs is high.
+
+Query 2 uses a Common Table Expression (CTE) to calculate the total number of products just once.
+This result is then reused, which can be more efficient, especially with large datasets.
+Use of IN Clause:
+
+Both queries use product_key IN (SELECT product_key FROM product). If the product table is large, this subquery could lead to performance issues. 
+Consider replacing it with a JOIN if possible, as joins are often more efficient than IN clauses in large datasets.
+Count Distinct:
+
+Both queries utilize COUNT(DISTINCT product_key), which can be computationally expensive. 
+However, since both queries do this similarly, they should have comparable performance in this aspect.
+Overall Structure:
+
+The CTE in Query 2 allows the count of products to be computed only once, leading to potentially less overhead in repeated calculations during the execution of the main query.
+Conclusion
+Query 2 is likely to be faster for large datasets because:
+
+It calculates the total number of products only once, reducing redundant calculations.
+The use of a CTE can improve readability and maintainability, which might also help in optimizing execution plans.
