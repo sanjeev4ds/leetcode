@@ -1,0 +1,58 @@
+35. https://leetcode.com/problems/last-person-to-fit-in-the-bus/description/?envType=study-plan-v2&envId=top-sql-50
+
+Last Person to Fit in the Bus:
+
+Table: Queue
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| person_id   | int     |
+| person_name | varchar |
+| weight      | int     |
+| turn        | int     |
++-------------+---------+
+person_id column contains unique values.
+This table has the information about all people waiting for a bus.
+The person_id and turn columns will contain all numbers from 1 to n, where n is the number of rows in the table.
+turn determines the order of which the people will board the bus, where turn=1 denotes the first person to board and turn=n denotes the last person to board.
+weight is the weight of the person in kilograms.
+ 
+There is a queue of people waiting to board a bus. However, the bus has a weight limit of 1000 kilograms, so there may be some people who cannot board.
+Write a solution to find the person_name of the last person that can fit on the bus without exceeding the weight limit. The test cases are generated such that the first person does not exceed the weight limit.
+Note that only one person can board the bus at any given turn.
+The result format is in the following example.
+
+solution 1: (cross join [but only beat 30%])
+  select q2.person_name
+  from Queue q1
+  cross join Queue q2
+  on q2.turn>= q1.turn
+  group by q2.person_id
+  having sum(q1.weight)<=1000
+  order by q2.turn desc
+  limit 1;
+
+chatgpt-->
+To calculate the cumulative sum of a column in MySQL, you can use the SUM() function combined with the OVER() clause
+
+solution 2: (using sum() over)  --> (beat 80% and recommended solution)
+  select person_name from
+  (
+      select person_name, turn,
+      sum(weight) over(order by turn) as sum_weight
+      from Queue
+  ) as s1
+  where sum_weight<=1000
+  order by turn desc
+  limit 1;
+
+solution 3: (logically sum_weight always increases for next turn person, so skip order by turn and use instead order by sum_weight)
+  select person_name from
+  (
+      select person_name,
+      sum(weight) over(order by turn) as sum_weight
+      from Queue
+  ) as s1
+  where sum_weight<=1000
+  order by sum_weight desc
+  limit 1;
