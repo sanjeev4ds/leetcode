@@ -1,0 +1,76 @@
+34. https://leetcode.com/problems/product-price-at-a-given-date/description/?envType=study-plan-v2&envId=top-sql-50
+
+Product Price at a Given Date:
+
+Table: Products
++---------------+---------+
+| Column Name   | Type    |
++---------------+---------+
+| product_id    | int     |
+| new_price     | int     |
+| change_date   | date    |
++---------------+---------+
+(product_id, change_date) is the primary key (combination of columns with unique values) of this table.
+Each row of this table indicates that the price of some product was changed to a new price at some date.
+ 
+Write a solution to find the prices of all products on 2019-08-16. Assume the price of all products before any change is 10.
+Return the result table in any order.
+The result format is in the following example.
+
+solution 1: (using nultiple ctes and later used join)
+  with cte_products as (
+      select distinct product_id
+      from Products
+  ),
+  cte_product_price_date as (
+      select product_id, new_price,change_date
+      from Products
+      where change_date<='2019-08-16'
+  ),
+  cte_product_last_date as (
+      select product_id, max(change_date)
+      from cte_product_price_date
+      group by product_id
+  ),
+  cte_product_last_price as (
+      select product_id, new_price
+      from cte_product_price_date
+      where (product_id, change_date) in (
+          select * from cte_product_last_date
+      )
+  )
+  
+  select cte_products.product_id,
+  case 
+      when cte_product_last_price.product_id is not null then cte_product_last_price.new_price
+      else 10
+  end as price
+  from cte_products
+  left join cte_product_last_price
+  on cte_products.product_id= cte_product_last_price.product_id;
+
+solution 2: (better than earlier, using one cte and partition by with window function row_number)
+  with cte_products as (
+      select distinct product_id
+      from Products
+  ),
+  cte_product_price_date as (
+      select * from
+      (
+          select product_id,
+          new_price,
+          row_number() over (partition by product_id order by change_date desc) as row_
+          from Products
+          where change_date<='2019-08-16'
+      ) as s1
+      where row_=1
+  )
+  
+  select t1.product_id,
+  case 
+      when t2.product_id is not null then t2.new_price
+      else 10
+  end as price
+  from cte_products t1
+  left join cte_product_price_date t2
+  on t1.product_id= t2.product_id;
