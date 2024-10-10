@@ -1,0 +1,56 @@
+38. https://leetcode.com/problems/exchange-seats/description/?envType=study-plan-v2&envId=top-sql-50
+
+Exchange Seats:
+
+Table: Seat
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| id          | int     |
+| student     | varchar |
++-------------+---------+
+id is the primary key (unique value) column for this table.
+Each row of this table indicates the name and the ID of a student.
+The ID sequence always starts from 1 and increments continuously.
+
+Write a solution to swap the seat id of every two consecutive students. If the number of students is odd, the id of the last student is not swapped.
+Return the result table ordered by id in ascending order.
+The result format is in the following example.
+
+solution 1:
+select 
+case
+    when id%2=0 then id-1
+    when (id+1 in (select id from seat)) then id+1
+    else id
+end as id,
+student
+from Seat
+order by id;
+
+solution 2: (use of lead and lag)
+  select 
+  case
+      when id%2=0 then lag(id) over (order by id)
+      when (id%2!=0 and (lead(id) over (order by id)) is not null) then lead(id) over (order by id)
+      else id
+  end as id,
+  student
+  from Seat
+  order by id;
+
+solution 3: (via joins- will work on the join scenario later)
+  select
+  case 
+      when s1.id%2=0 then s2.id
+      when s2.id is null then s1.id
+      when s1.id %2=0 then s2.id
+      -- when s2.id%2!=0 then s1.id
+      else s1.id
+  end as id,
+  s1.student
+  from Seat s1
+  left join Seat s2
+  on (s1.id= s2.id-1 and s1.id%2!=0)
+  or (s1.id=s2.id-1 and s1.id%2=0) 
+  order by s1.id;
